@@ -1,5 +1,15 @@
 # @readr-media/react-component Changelog
 
+## Version 2.1.1 @ChangRongXuan
+
+### Notable Changes
+
+- style(react-components): adjust `donate`、`subscribe` margin size (Xuan)
+
+### Commits
+
+   \[[`0ca568287b`](https://github.com/readr-media/react-component/commit/0ca568287b)] - style(react-components): adjust `donate`、`subscribe` margin size (Xuan)
+
 ## Version 2.1.0 @ChangRongXuan
 
 ### Notable Changes
