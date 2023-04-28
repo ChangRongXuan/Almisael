@@ -18,7 +18,7 @@ const Button = styled.a`
   text-decoration: none;
   color: #000928;
   background-color: #ebf02c;
-  margin: 48px auto 52px;
+  margin: 48px auto;
 
   &:hover {
     background: #04295e;
@@ -26,7 +26,7 @@ const Button = styled.a`
   }
 
   @media (min-width: 576px) {
-    margin: 60px auto 64px;
+    margin: 60px auto;
   }
 `
 

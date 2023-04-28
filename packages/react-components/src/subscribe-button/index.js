@@ -17,10 +17,14 @@ const Button = styled.a`
   padding: 12px 24px;
   text-decoration: none;
   background-color: #04295e;
-  margin: 48px auto;
+  margin: 47px auto;
 
   &:hover {
     background: #000928;
+  }
+
+  @media (min-width: 576px) {
+    margin: 59px auto;
   }
 `
 
