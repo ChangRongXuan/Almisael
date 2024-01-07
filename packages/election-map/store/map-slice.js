@@ -6,6 +6,7 @@ import {
 
 /**
  * @typedef {Object} GeoJsons
+ * @property {Object} nation - Geojson in nation level.
  * @property {Object} counties - Geojson in county level.
  * @property {Object} towns - Geojson in town level.
  * @property {Object} villages - Geojson in village level.
@@ -13,6 +14,7 @@ import {
 
 /** @type {GeoJsons} */
 const defaultGeoJsons = {
+  nation: null,
   counties: null,
   towns: null,
   villages: null,
@@ -29,6 +31,7 @@ const initialMapState = {
   },
   ui: {
     districtNames: defaultRenderingDistrictNames,
+    showTutorial: false,
   },
 }
 
@@ -59,6 +62,9 @@ const mapSlice = createSlice({
     },
     resetUiDistrictNames(state) {
       state.ui.districtNames = defaultRenderingDistrictNames
+    },
+    changeUiShowTutorial(state, action) {
+      state.ui.showTutorial = action.payload
     },
   },
 })

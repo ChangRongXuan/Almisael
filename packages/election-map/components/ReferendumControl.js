@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { ReferendumSelect } from './ReferendumSelect'
-import ReactGA from 'react-ga'
 import { electionActions } from '../store/election-slice'
 import { getReferendumNumbers } from '../utils/election'
 import { useAppDispatch, useAppSelector } from '../hook/useRedux'
 import { mapActions } from '../store/map-slice'
+import gtag from '../utils/gtag'
 
 const StyledReferendumSelect = styled(ReferendumSelect)`
-  margin: 17px 0 0 12px;
+  margin-top: 20px;
 `
 
 const ActionButton = styled.button`
   display: inline-block;
-  margin: 20px 0 0 12px;
+  margin-top: 20px;
   border: 1px solid #000;
   background-color: ${
     /**
@@ -30,6 +30,9 @@ const ActionButton = styled.button`
   font-weight: 500;
   width: 80px;
   height: 32px;
+  &:nth-of-type(2) {
+    margin-left: 12px;
+  }
   ${({ cancel }) => cancel && 'background-color: #e0e0e0;'}
 `
 
@@ -39,6 +42,11 @@ export const ReferendumControl = () => {
   )
   const number = useAppSelector((state) => state.election.control.number)
   const electionConfig = useAppSelector((state) => state.election.config)
+  const device = useAppSelector((state) => state.ui.device)
+  const electionName = useAppSelector(
+    (state) => state.election.config.electionName
+  )
+  const subtype = useAppSelector((state) => state.election.control.subtype)
   const numbers = getReferendumNumbers(electionConfig)
   const [compare, setCompare] = useState(false)
   const dispatch = useAppDispatch()
@@ -119,11 +127,6 @@ export const ReferendumControl = () => {
                     ? numbers.filter((n) => n.key !== number.key)[0]
                     : null,
                 ])
-                ReactGA.event({
-                  category: 'Projects',
-                  action: 'Click',
-                  label: `比較取消：公投 / 桌機`,
-                })
               }}
             >
               取消
@@ -144,10 +147,13 @@ export const ReferendumControl = () => {
                 document.documentElement.scrollTop = 0 // For Chrome, Firefox, IE and Opera
               } else {
                 submitCompareCandidates()
-                ReactGA.event({
-                  category: 'Projects',
-                  action: 'Click',
-                  label: `比較確定：公投 / 桌機`,
+                const [number, compareNumber] = compareCandidates
+                gtag.sendGAEvent('Click', {
+                  project: `比較確定：${electionName}${
+                    subtype ? ` - ${subtype.name}` : ''
+                  } / ${number.year + number.name} - ${
+                    compareNumber.year + compareNumber.name
+                  } / ${device}`,
                 })
               }
             }}
@@ -168,10 +174,8 @@ export const ReferendumControl = () => {
             <ActionButton
               onClick={() => {
                 setCompare(true)
-                ReactGA.event({
-                  category: 'Projects',
-                  action: 'Click',
-                  label: `比較：公投 / 桌機`,
+                gtag.sendGAEvent('Click', {
+                  project: `比較 / ${device}`,
                 })
               }}
               compare={compare}

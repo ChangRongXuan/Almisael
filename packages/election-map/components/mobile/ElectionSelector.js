@@ -5,6 +5,8 @@ import { useAppDispatch } from '../../hook/useRedux'
 import { useAppSelector } from '../../hook/useRedux'
 import useClickOutside from '../../hook/useClickOutside'
 import styled from 'styled-components'
+import { mapActions } from '../../store/map-slice'
+import gtag from '../../utils/gtag'
 
 const WIDTH = '100px'
 const Wrapper = styled.div`
@@ -27,7 +29,7 @@ const Options = styled.ul`
   padding: 14px 0 0 0;
   margin: 14px 0 0 0;
   border-top: none;
-  width: ${WIDTH};
+  width: 100%;
   list-style-type: none;
   border: 1px solid black;
 `
@@ -56,6 +58,7 @@ const SelectedButton = styled.button`
   position: absolute;
   padding: 4px 10px;
   width: 100%;
+  height: 100%;
   z-index: ${
     /**
      * @param {Object} props
@@ -90,12 +93,20 @@ const SelectedButton = styled.button`
 /**
  *
  * @param {Object} props
+ * @param {string} [props.className]
  * @param {Object[]} props.options
  * @param {'electionType' | 'electionSubType'} props.selectorType
  */
-export default function ElectionSelector({ options = [], selectorType }) {
+export default function ElectionSelector({
+  className,
+  options = [],
+  selectorType,
+}) {
   const electionType = useAppSelector(
     (state) => state.election.config.electionType
+  )
+  const electionName = useAppSelector(
+    (state) => state.election.config.electionName
   )
 
   const compareMode = useAppSelector(
@@ -104,6 +115,7 @@ export default function ElectionSelector({ options = [], selectorType }) {
   const currentSubType = useAppSelector(
     (state) => state.election.control.subtype
   )
+  const device = useAppSelector((state) => state.ui.device)
   const currentSelectedOptionName =
     selectorType === 'electionSubType'
       ? options.find((options) => options.key === currentSubType?.key)?.name
@@ -123,10 +135,26 @@ export default function ElectionSelector({ options = [], selectorType }) {
     if (selectorType === 'electionType') {
       if (option.electionType !== electionType) {
         dispatch(electionActions.changeElection(option.electionType))
+        // only PC should reset the map and panels
+        if (device === 'desktop') {
+          dispatch(mapActions.resetMapFeature())
+          dispatch(mapActions.resetUiDistrictNames())
+        }
+        gtag.sendGAEvent('Click', {
+          project: `選舉類別一：${option.electionName} / ${device}`,
+        })
       }
     } else if (selectorType === 'electionSubType') {
       if (currentSubType.key !== option.key) {
         dispatch(electionActions.changeSubtype(option))
+        // only PC legislator should reset the map and panels
+        if (device === 'desktop' && electionType === 'legislator') {
+          dispatch(mapActions.resetMapFeature())
+          dispatch(mapActions.resetUiDistrictNames())
+        }
+        gtag.sendGAEvent('Click', {
+          project: `選舉類別二：${electionName} - ${option.name} / ${device}`,
+        })
       }
     }
 
@@ -134,30 +162,28 @@ export default function ElectionSelector({ options = [], selectorType }) {
   }
 
   return (
-    <>
-      <Wrapper ref={wrapperRef}>
-        <SelectedButton
-          isOptionsOpen={shouldShowOptions}
-          disabled={compareMode}
-          shouldDisable={compareMode}
-          onClick={handleSelectedButtonOnClick}
-        >
-          <span>{currentSelectedOptionName}</span>
-          <i className="triangle"></i>
-        </SelectedButton>
-        {shouldShowOptions && (
-          <Options>
-            {options.map((option) => (
-              <OptionItem
-                key={option.electionType || option.key}
-                onClick={() => handleOptionOnSelected(option)}
-              >
-                <span>{option.electionName || option.name}</span>
-              </OptionItem>
-            ))}
-          </Options>
-        )}
-      </Wrapper>
-    </>
+    <Wrapper ref={wrapperRef} className={className}>
+      <SelectedButton
+        isOptionsOpen={shouldShowOptions}
+        disabled={compareMode}
+        shouldDisable={compareMode}
+        onClick={handleSelectedButtonOnClick}
+      >
+        <span>{currentSelectedOptionName}</span>
+        <i className="triangle"></i>
+      </SelectedButton>
+      {shouldShowOptions && (
+        <Options>
+          {options.map((option) => (
+            <OptionItem
+              key={option.electionType || option.key}
+              onClick={() => handleOptionOnSelected(option)}
+            >
+              <span>{option.electionName || option.name}</span>
+            </OptionItem>
+          ))}
+        </Options>
+      )}
+    </Wrapper>
   )
 }

@@ -5,6 +5,9 @@ import {
 } from '../consts/electionsConfig'
 import {
   defaultElectionData,
+  defaultEvcData,
+  defaultMapData,
+  defaultSeatData,
   generateDefaultElectionsData,
   getElectionData,
   updateElectionsData,
@@ -68,14 +71,23 @@ const defaultCompareInfo = {
   },
 }
 
+/** @type {import('../utils/electionsData').InfoboxData} */
+const defaultInfoboxData = {
+  electionType: defaultElectionConfig.electionType,
+  level: defaultControl.level.level,
+  electionData: null,
+  isRunning: false,
+  isStarted: true,
+}
+
 const initialElectionState = {
   config: defaultElectionConfig,
   data: {
     electionsData: defaultElectionsData,
-    infoboxData: {},
-    mapData: {},
-    seatData: {},
-    evcData: {},
+    infoboxData: defaultInfoboxData,
+    mapData: defaultMapData,
+    seatData: defaultSeatData,
+    evcData: defaultEvcData,
     lastUpdate: '',
     districtMapping: {
       district: null,
@@ -133,7 +145,7 @@ const electionsSlice = createSlice({
         number: newNumber,
         subtype: newSubtype,
       }
-      state.data.infoboxData = {}
+      state.data.infoboxData = defaultInfoboxData
       state.compare = {
         info: defaultCompareInfo,
         infoboxData: {},
@@ -214,11 +226,12 @@ const electionsSlice = createSlice({
           state.control.number?.key
         )
         newElectionData.seatData.all = oldElectionData.seatData.all
+        state.control.level = defaultLevelControl
       }
       if (state.compare.info.compareMode) {
         state.compare.info.filter.subtype = newSubtype
       }
-      state.data.infoboxData = {}
+      state.data.infoboxData = defaultInfoboxData
       state.control.subtype = newSubtype
     },
     changeNumber(state, action) {

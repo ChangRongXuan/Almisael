@@ -1,5 +1,6 @@
 export const defaultElectionType = 'president'
 export const currentYear = 2024
+export const refetchInervalInSecond = 3 * 60
 
 /**
  * Representing the type of the election.
@@ -81,37 +82,16 @@ export const electionsConfig = [
     },
   },
   {
-    electionType: 'mayor',
-    electionName: '縣市首長',
-    years: [{ key: 2010 }, { key: 2014 }, { key: 2018 }, { key: 2022 }],
-    meta: {
-      evc: { wrapperTitle: '縣市首長候選人' },
-      map: {
-        mapColor: true,
-        folderNames: {
-          0: 'country',
-          1: 'county',
-          2: 'town',
-        },
-        fileNames: {
-          0: 'country',
-          1: '',
-          2: '',
-        },
-      },
-    },
-  },
-  {
     electionType: 'legislator',
     electionName: '立法委員',
     subtypes: [
       { name: '區域', key: 'normal', mobileOnly: false },
       { name: '山地原住民', key: 'mountainIndigenous', mobileOnly: false },
       { name: '平地原住民', key: 'plainIndigenous', mobileOnly: false },
-      { name: '政黨票', key: 'party', mobileOnly: false },
+      { name: '不分區', key: 'party', mobileOnly: false },
       { name: '全國', key: 'all', mobileOnly: true },
     ],
-    years: [{ key: 2012 }, { key: 2016 }, { key: 2020 }],
+    years: [{ key: 2012 }, { key: 2016 }, { key: 2020 }, { key: 2024 }],
     meta: {
       evc: {
         wrapperTitle: {
@@ -159,16 +139,39 @@ export const electionsConfig = [
       },
       seat: {
         wrapperTitle: {
-          normal: '區域立法委員席次圖',
-          mountainIndigenous: '山地原住民立法委員席次圖',
-          plainIndigenous: '平地原住民立法委員席次圖',
-          party: '不分區立法委員席次圖',
+          normal: '立法委員席次圖',
+          mountainIndigenous: '立法委員席次圖',
+          plainIndigenous: '立法委員席次圖',
+          party: '立法委員席次圖',
+          all: '立法委員席次圖',
         },
         componentTitle: {
           normal: '區域立法委員選舉',
           mountainIndigenous: '山地原住民立法委員選舉',
           plainIndigenous: '平地原住民立法委員選舉',
           party: '不分區立法委選舉',
+          all: '立法委員選舉（總席次圖）',
+        },
+      },
+    },
+  },
+  {
+    electionType: 'mayor',
+    electionName: '縣市首長',
+    years: [{ key: 2010 }, { key: 2014 }, { key: 2018 }, { key: 2022 }],
+    meta: {
+      evc: { wrapperTitle: '縣市首長候選人' },
+      map: {
+        mapColor: true,
+        folderNames: {
+          0: 'country',
+          1: 'county',
+          2: 'town',
+        },
+        fileNames: {
+          0: 'country',
+          1: '',
+          2: '',
         },
       },
     },
@@ -204,7 +207,7 @@ export const electionsConfig = [
   },
   {
     electionType: 'referendum',
-    electionName: '全國性公民投票',
+    electionName: '全國公投',
     years: [
       {
         key: 2018,

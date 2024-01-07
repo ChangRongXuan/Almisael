@@ -1,19 +1,22 @@
-import { forwardRef, useCallback, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useRef, useState } from 'react'
 import { useElectionData } from '../hook/useElectinData'
 import { SpinningModal } from './SpinningModal'
 import useWindowDimensions from '../hook/useWindowDimensions'
 // import { MobileDashboard } from './MobileDashboard'
 import { MobileDashboardNew } from './mobile/MobileDashboardNew'
 import { Dashboard } from './Dashboard'
+import { useAppDispatch } from '../hook/useRedux'
+import { uiActions } from '../store/ui-slice'
 
 export const DashboardContainer = forwardRef(function DashboardContainer(
-  { showTutorial, hasAnchor, setShowTutorial, dashboardInView },
+  { hasAnchor, dashboardInView },
   ref
 ) {
   const [loading, setLoading] = useState(false)
   const loadingTimout = useRef(null)
   const { width } = useWindowDimensions()
   const isMobile = width <= 1024
+  const dispatch = useAppDispatch()
 
   const showLoading = useCallback((show) => {
     if (show) {
@@ -29,10 +32,15 @@ export const DashboardContainer = forwardRef(function DashboardContainer(
     }
   }, [])
 
-  const { onEvcSelected, onTutorialEnd } = useElectionData(
-    showLoading,
-    showTutorial
-  )
+  const { onEvcSelected } = useElectionData(showLoading)
+
+  useEffect(() => {
+    if (width > 1024) {
+      dispatch(uiActions.changeUiDevice('desktop'))
+    } else {
+      dispatch(uiActions.changeUiDevice('mobile'))
+    }
+  }, [dispatch, width])
 
   if (!isMobile) {
     return (
@@ -41,9 +49,6 @@ export const DashboardContainer = forwardRef(function DashboardContainer(
         <Dashboard
           onEvcSelected={onEvcSelected}
           showLoading={showLoading}
-          showTutorial={showTutorial}
-          setShowTutorial={setShowTutorial}
-          onTutorialEnd={onTutorialEnd}
           dashboardInView={dashboardInView}
           hasAnchor={hasAnchor}
         />

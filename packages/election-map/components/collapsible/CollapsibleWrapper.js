@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import styled from 'styled-components'
-import { MapLocations } from '../MapLocations'
 
 /**
  * Styled image component.
@@ -59,15 +58,6 @@ const CollapseButtonSpecialTitle = styled.div`
   }
 `
 
-const CollapseButtonSubTitle = styled.div`
-  position: absolute;
-  top: 0;
-  right: 52px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-`
-
 /**
  * Styled image component.
  *
@@ -109,19 +99,22 @@ const upTriangle = (
 )
 
 /**
- *
  * @param {Object} props
- *
- * @returns {React.ReactElement}
+ * @param {React.ReactNode} props.children
+ * @param {string} [props.title]
+ * @param {string} [props.className]
+ * @param {boolean} [props.preventCollapse]
+ * @param {boolean} [props.centerTitle]
+ * @param {Function} [props.onCollapse]
+ * @returns {JSX.Element}
  */
 export const CollapsibleWrapper = ({
   children,
-  title,
+  title = '',
   className,
-  preventCollapse,
-  centerTitle,
-  compareMode,
-  locations,
+  preventCollapse = false,
+  centerTitle = false,
+  onCollapse = () => {},
 }) => {
   const [collapse, setCollapse] = useState(true)
 
@@ -131,6 +124,7 @@ export const CollapsibleWrapper = ({
         className="collapseBtn"
         onClick={() => {
           !preventCollapse && setCollapse((v) => !v)
+          onCollapse()
         }}
       >
         <CollapseButtonTitle>{title}</CollapseButtonTitle>
@@ -139,11 +133,6 @@ export const CollapsibleWrapper = ({
         </CollapseButtonIcon>
         {centerTitle && (
           <CollapseButtonSpecialTitle>{centerTitle}</CollapseButtonSpecialTitle>
-        )}
-        {compareMode && (
-          <CollapseButtonSubTitle>
-            <MapLocations locations={locations} compareMode={compareMode} />
-          </CollapseButtonSubTitle>
         )}
       </CollapseButton>
       <CollapseContent collapse={collapse}>{children}</CollapseContent>

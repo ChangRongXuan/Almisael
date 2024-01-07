@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getElectionData, defaultElectionData } from '../utils/electionsData'
-import { currentYear } from '../consts/electionsConfig'
+import { currentYear, refetchInervalInSecond } from '../consts/electionsConfig'
 import { countyMappingData } from '../consts/electionsConfig'
 import { deepCloneObj } from '../utils/deepClone'
-import ReactGA from 'react-ga'
 import { prepareElectionData } from '../utils/electionsData'
 import { electionActions } from '../store/election-slice'
 import { useAppSelector, useAppDispatch } from './useRedux'
@@ -11,6 +10,7 @@ import {
   fetchDistrictMappingData,
   fetchDistrictWithAreaMappingData,
 } from '../utils/fetchElectionData'
+import gtag from '../utils/gtag'
 
 /**
  * @typedef {import('../consts/electionsConfig').ElectionType} ElectionType
@@ -21,10 +21,9 @@ import {
  *
  * A fat hook handle all election related data (votes, mapGeoJson) fetching, refetching.
  * @param {BooleanCallback} showLoading - A callback to show loading spinner.
- * @param {boolean} showTutorial - A flag to indicate whether the tutorial is showing.
  * @returns
  */
-export const useElectionData = (showLoading, showTutorial) => {
+export const useElectionData = (showLoading) => {
   const dispatch = useAppDispatch()
   const electionConfig = useAppSelector((state) => state.election.config)
   // Object to store all data for infobox, map, evc and seat chart, store by election, year, subtype and referendum number. Check type ElectionsData for more detail.
@@ -43,6 +42,7 @@ export const useElectionData = (showLoading, showTutorial) => {
   const districtMapping = useAppSelector(
     (state) => state.election.data.districtMapping
   )
+  const device = useAppSelector((state) => state.ui.device)
 
   const electionData = getElectionData(
     electionsData,
@@ -166,10 +166,8 @@ export const useElectionData = (showLoading, showTutorial) => {
             target.dispatchEvent(event)
           }
 
-          ReactGA.event({
-            category: 'Projects',
-            action: 'Click',
-            label: `票數比較篩選器：縣市長 / ${evcSelectedValue}`,
+          gtag.sendGAEvent('Click', {
+            project: `票數比較篩選：${year.key} / 縣市長 / ${evcSelectedValue} / ${device}`,
           })
 
           break
@@ -192,13 +190,8 @@ export const useElectionData = (showLoading, showTutorial) => {
             }
           }
 
-          const countyName = countyMappingData.find(
-            (countyData) => countyData.countyCode === levelControl.countyCode
-          ).countyName
-          ReactGA.event({
-            category: 'Projects',
-            action: 'Click',
-            label: `票數比較篩選器：縣市議員 / ${subtype.name} / ${countyName} / ${evcSelectedValue}`,
+          gtag.sendGAEvent('Click', {
+            project: `票數比較篩選：${year.key} / 縣市議員區域 / ${evcSelectedValue} / ${device}`,
           })
 
           break
@@ -206,7 +199,6 @@ export const useElectionData = (showLoading, showTutorial) => {
         case 'legislator': {
           // only normal legislator will handle evc callback
           if (subtype.key === 'normal') {
-            console.log('evcSelectedValue', evcSelectedValue)
             const area = evcSelectedValue.slice(1, 3)
             const newAreaCode = levelControl.countyCode + area
             const target = document.querySelector(`#first-id-${newAreaCode}`)
@@ -214,6 +206,9 @@ export const useElectionData = (showLoading, showTutorial) => {
               let event = new MouseEvent('click', { bubbles: true })
               target.dispatchEvent(event)
             }
+            gtag.sendGAEvent('Click', {
+              project: `票數比較篩選：${year.key} / 立法委員區域 / ${evcSelectedValue} / ${device}`,
+            })
           }
           break
         }
@@ -231,18 +226,15 @@ export const useElectionData = (showLoading, showTutorial) => {
           break
       }
     },
-    [electionConfig.electionType, mapData, subtype, levelControl.countyCode]
+    [
+      electionConfig.electionType,
+      year.key,
+      device,
+      subtype?.key,
+      mapData,
+      levelControl.countyCode,
+    ]
   )
-
-  // Show the default election and the year after tutorial is finished.
-  const onTutorialEnd = () => {
-    dispatch(electionActions.changeElection('mayor'))
-    dispatch(
-      electionActions.changeYear(
-        electionConfig.years[electionConfig.years.length - 1]
-      )
-    )
-  }
 
   // Handle all fetching data logic for the first time.
   useEffect(() => {
@@ -379,9 +371,7 @@ export const useElectionData = (showLoading, showTutorial) => {
   useEffect(() => {
     const interval = window.setInterval(() => {
       setShouldRefetch(true)
-      // }, 100 * 60 * 1000)
-    }, 1 * 60 * 1000)
-    // }, 10 * 1000)
+    }, refetchInervalInSecond * 1000)
 
     return () => {
       window.clearInterval(interval)
@@ -480,20 +470,7 @@ export const useElectionData = (showLoading, showTutorial) => {
     dispatch,
   ])
 
-  // Handle default election and year for tutorial state.
-  useEffect(() => {
-    if (showTutorial) {
-      dispatch(electionActions.changeElection('councilMember'))
-      dispatch(
-        electionActions.changeYear(
-          electionConfig.years[electionConfig.years.length - 2]
-        )
-      )
-    }
-  }, [showTutorial, electionConfig.years, dispatch])
-
   return {
     onEvcSelected,
-    onTutorialEnd,
   }
 }

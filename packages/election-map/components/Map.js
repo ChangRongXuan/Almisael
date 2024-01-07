@@ -12,6 +12,7 @@ import { electionActions } from '../store/election-slice'
 import { useAppDispatch, useAppSelector } from '../hook/useRedux'
 import * as topojson from 'topojson'
 import { mapActions } from '../store/map-slice'
+import gtag from '../utils/gtag'
 
 const SVG = styled.svg`
   use {
@@ -42,11 +43,15 @@ export const Map = ({
   const electionType = useAppSelector(
     (state) => state.election.config.electionType
   )
+  const electionName = useAppSelector(
+    (state) => state.election.config.electionName
+  )
   const levelControl = useAppSelector((state) => state.election.control.level)
   const year = useAppSelector((state) => state.election.control.year)
+  const number = useAppSelector((state) => state.election.control.number)
   const { countyCode, townCode, areaCode, activeCode } = levelControl
   const { width, height } = dimension
-  const { counties, towns, villages } = geoJsons
+  const { nation, counties, towns, villages } = geoJsons
   const rawTopoJson = useAppSelector((state) => state.map.data.rawTopoJson)
   const districtMapping = useAppSelector(
     (state) => state.election.data.districtMapping
@@ -90,7 +95,7 @@ export const Map = ({
                 COUNTYNAME: someVillProperties.COUNTYNAME,
                 AREACODE: areaMappingObj.code,
                 AREANAME: areaMappingObj.name,
-                AREANICKNAME: areaMappingObj.nickname,
+                AREANICKNAME: areaMappingObj.nickName,
               }
               feature.properties = properties
               return feature
@@ -145,64 +150,52 @@ export const Map = ({
   const { displayingTowns, displayingAreas, displayingVillages } =
     displayingDistricts
 
-  const projection = d3.geoMercator().fitExtent(
-    [
-      [0, 0],
-      [width, height],
-    ],
-    counties
-  )
-  const path = d3.geoPath(projection)
+  const path = useMemo(() => {
+    const projection = d3.geoMercator().fitExtent(
+      [
+        [0, 0],
+        [width, height],
+      ],
+      counties
+    )
 
-  const getXYZ = (feature) => {
-    if (feature) {
-      const bounds = path.bounds(feature)
-      const wScale = (bounds[1][0] - bounds[0][0]) / width
-      const hScale = (bounds[1][1] - bounds[0][1]) / height
-      const z = 0.56 / Math.max(wScale, hScale)
-
-      const centroid = path.centroid(feature)
-      const [x, y] = centroid
-      return [x, y, z]
-    } else {
-      // default xyz
-      return [width / 2, height / 2, 1]
-    }
-  }
-
-  const zoom = (duration, currentFeature) => {
-    const xyz = getXYZ(currentFeature)
-    const g = d3.select(`#${id}-control`)
-    g.transition()
-      .duration(duration)
-      .attr(
-        'transform',
-        `translate(${width / 2}, ${height / 2})scale(${xyz[2]})translate(-${
-          xyz[0]
-        }, -${xyz[1]})`
-      )
-
-    g.selectAll([`#${id}-#counties`, `#${id}-towns`, `#${id}-villages`])
-      .style('stroke', 'black')
-      // .style('stroke-linejoin', 'round')
-      // .style('stroke-linecap', 'round')
-      .style('stroke-width', '0px')
-      .transition()
-      .delay(750)
-      .duration(0)
-      .style('stroke-width', `${0.3 / xyz[2]}px`)
-      .selectAll('.villages')
-      .attr('d', path.pointRadius(20.0 / xyz[2]))
-  }
+    return d3.geoPath(projection)
+  }, [counties, height, width])
 
   useEffect(() => {
-    zoom(750, feature)
-  }, [feature, width, height])
+    const getXYZ = (feature) => {
+      if (feature) {
+        const bounds = path.bounds(feature)
+        const wScale = (bounds[1][0] - bounds[0][0]) / width
+        const hScale = (bounds[1][1] - bounds[0][1]) / height
+        const magicNumber = 0.56
+        // Restrict the highest scale rate to 25 to prevent extreme condition.
+        const z = Math.min(25, magicNumber / Math.max(wScale, hScale))
 
-  // useEffect(() => {
-  //   zoom(0)
-  //   console.log('zoom here')
-  // }, [width, height])
+        const centroid = path.centroid(feature)
+        const [x, y] = centroid
+        return [x, y, z]
+      } else {
+        // default xyz
+        return [width / 2, height / 2, 1]
+      }
+    }
+
+    const zoom = (duration, currentFeature) => {
+      const xyz = getXYZ(currentFeature)
+      const g = d3.select(`#${id}-control`)
+      g.transition()
+        .duration(duration)
+        .attr(
+          'transform',
+          `translate(${width / 2}, ${height / 2})scale(${xyz[2]})translate(-${
+            xyz[0]
+          }, -${xyz[1]})`
+        )
+    }
+
+    zoom(750, feature)
+  }, [feature, width, height, path, id])
 
   const nonLandClicked = () => {
     dispatch(electionActions.resetLevelControl())
@@ -214,12 +207,6 @@ export const Map = ({
   const countyClicked = (feature) => {
     const { COUNTYCODE: countyCode, COUNTYNAME: countyName } =
       feature.properties
-    // console.log('---')
-    // console.log(`county:${countyName} clicked`)
-    // console.log(`countyId = ${countyId}`)
-    // console.log('path id is:', `#id-${countyId}`)
-    // console.log('d is:', feature)
-    // console.log('---')
     dispatch(
       electionActions.changeLevelControl({
         level: 1,
@@ -240,6 +227,11 @@ export const Map = ({
         villageName: '',
       })
     )
+    gtag.sendGAEvent('Click', {
+      project: `地圖點擊: ${electionName}${
+        subtype ? ` - ${subtype.name}` : ''
+      } / ${year.key} / ${number ? `${number.name} / ` : ''}${countyName}`,
+    })
   }
   const townClicked = (feature) => {
     const {
@@ -248,13 +240,6 @@ export const Map = ({
       TOWNCODE: townCode,
       TOWNNAME: townName,
     } = feature.properties
-
-    // console.log('---')
-    // console.log(`county:${countyName} town:${townName} clicked`)
-    // console.log(`countyId = ${countyId}, townId = ${townId}`)
-    // console.log('path id is:', `#id-${townId}`)
-    // console.log('d is:', feature)
-    // console.log('---')
     dispatch(
       electionActions.changeLevelControl({
         level: 2,
@@ -275,6 +260,13 @@ export const Map = ({
         villageName: '',
       })
     )
+    gtag.sendGAEvent('Click', {
+      project: `地圖點擊: ${electionName}${
+        subtype ? ` - ${subtype.name}` : ''
+      } / ${year.key} / ${
+        number ? `${number.name} / ` : ''
+      }${countyName} / ${townName}`,
+    })
   }
   const areaClicked = (feature) => {
     const {
@@ -304,6 +296,13 @@ export const Map = ({
         villageName: '',
       })
     )
+    gtag.sendGAEvent('Click', {
+      project: `地圖點擊: ${electionName}${
+        subtype ? ` - ${subtype.name}` : ''
+      } / ${year.key} / ${
+        number ? `${number.name} / ` : ''
+      }${countyName} / ${areaName}`,
+    })
   }
   const villageClicked = (feature) => {
     const {
@@ -314,18 +313,6 @@ export const Map = ({
       VILLCODE: villageCode,
       VILLNAME: villageName,
     } = feature.properties
-
-    // console.log('---')
-    // console.log(
-    //   `county:${countyName} town:${townName} village:${villageName} clicked`
-    // )
-    // console.log(
-    //   `countyId = ${countyId}, townId = ${townId}, villageId = ${villageId}`
-    // )
-    // console.log('village_clicked:')
-    // console.log('path id is:', `#id-${villageId}`)
-    // console.log('d is:', feature)
-    // console.log('---')
 
     if (!areaCode) {
       dispatch(
@@ -347,6 +334,13 @@ export const Map = ({
           villageName,
         })
       )
+      gtag.sendGAEvent('Click', {
+        project: `地圖點擊: ${electionName}${
+          subtype ? ` - ${subtype.name}` : ''
+        } / ${year.key} / ${
+          number ? `${number.name} / ` : ''
+        }${countyName} / ${townName} / ${villageName}`,
+      })
     } else {
       dispatch(
         electionActions.changeLevelControl({
@@ -359,6 +353,7 @@ export const Map = ({
         })
       )
       dispatch(mapActions.changeMapUpperLevelId(areaCode))
+      dispatch(mapActions.changeMapFeature(feature))
       dispatch(
         mapActions.changeUiDistrictNames({
           countyName,
@@ -367,6 +362,13 @@ export const Map = ({
           villageName,
         })
       )
+      gtag.sendGAEvent('Click', {
+        project: `地圖點擊: ${electionName}${
+          subtype ? ` - ${subtype.name}` : ''
+        } / ${year.key} / ${
+          number ? `${number.name} / ` : ''
+        }${countyName} / ${areaName} / ${villageName}`,
+      })
     }
   }
 
@@ -625,6 +627,17 @@ export const Map = ({
         onClick={nonLandClicked}
       />
       <g id={`${id}-control`}>
+        <g id={`${id}-nation`}>
+          {nation.features.map((feature) => (
+            <path
+              key={feature['properties']['NAME']}
+              d={path(feature)}
+              id={`${id}-id-${feature['properties']['NAME']}`}
+              fill={defaultColor}
+              stroke="black"
+            />
+          ))}
+        </g>
         <g id={`${id}-counties`}>
           {counties.features.map((feature) => (
             <path
@@ -634,14 +647,10 @@ export const Map = ({
               data-county-code={feature['properties']['COUNTYCODE']}
               fill={
                 feature['properties']['COUNTYCODE'] === activeCode
-                  ? undefined
+                  ? 'transparent'
                   : getCountyColor(feature['properties']['COUNTYCODE'])
               }
-              stroke={
-                feature['properties']['COUNTYCODE'] === activeCode
-                  ? undefined
-                  : 'black'
-              }
+              stroke="black"
               strokeWidth="0.5"
               strokeLinejoin="round"
               onClick={countyClicked.bind(null, feature)}
@@ -650,6 +659,7 @@ export const Map = ({
                   ...tooltip,
                   show: true,
                   text: feature['properties']['COUNTYNAME'],
+                  title: '',
                 }))
               }
               onMouseMove={(e) => {
@@ -697,6 +707,7 @@ export const Map = ({
                   ...tooltip,
                   show: true,
                   text: feature['properties']['TOWNNAME'],
+                  title: '',
                 }))
               }
               onMouseMove={(e) => {
@@ -742,7 +753,8 @@ export const Map = ({
                 setTooltip((tooltip) => ({
                   ...tooltip,
                   show: true,
-                  text: feature['properties']['AREANAME'],
+                  text: `(${feature['properties']['AREANICKNAME']})`,
+                  title: `${feature['properties']['COUNTYNAME']} ${feature['properties']['AREANAME']}`,
                 }))
               }
               onMouseMove={(e) => {
@@ -789,6 +801,7 @@ export const Map = ({
                   ...tooltip,
                   show: true,
                   text: feature['properties']['VILLNAME'],
+                  title: '',
                 }))
               }}
               onMouseMove={(e) => {

@@ -19,11 +19,12 @@ import {
  * @typedef {{ [key: number]: null | Object}} ModuleData
  * @typedef {{isRunning: boolean, isStarted: boolean, [key: number]: null | Object}} MapData
  * @typedef {{all: null | Object, [key: number]: null | Object}} SeatData
+ * @typedef {{[key: number]: null | Object}} EVCData
  *
  * Representing the data for an election in a year. For referendum it represents the data in one number(案號).
  * @typedef {Object} ElectionData
  * @property {MapData} mapData
- * @property {ModuleData} evcData
+ * @property {EVCData} evcData
  * @property {SeatData} seatData
  *
  * @typedef {{[key: number]: {
@@ -75,21 +76,26 @@ const defaultModuleData = {
 }
 
 /** @type {MapData} */
-const defaultMapData = {
+export const defaultMapData = {
   ...defaultModuleData,
   isRunning: false,
   isStarted: true,
 }
 
 /** @type {SeatData} */
-const defaultSeatData = {
+export const defaultSeatData = {
   ...defaultModuleData,
   all: null, // only used in legislator to store cross subtype seats
 }
 
+/** @type {EVCData} */
+export const defaultEvcData = {
+  ...defaultModuleData,
+}
+
 export const defaultElectionData = {
   mapData: defaultMapData,
-  evcData: defaultModuleData,
+  evcData: defaultEvcData,
   seatData: defaultSeatData,
 }
 
@@ -539,7 +545,7 @@ export const prepareElectionData = async (
                 newMapData[level] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }
@@ -567,7 +573,7 @@ export const prepareElectionData = async (
                 newMapData[level][countyCode] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }
@@ -597,7 +603,7 @@ export const prepareElectionData = async (
                 newMapData[level][townCode] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }
@@ -662,7 +668,7 @@ export const prepareElectionData = async (
                 newMapData[level] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }
@@ -685,7 +691,7 @@ export const prepareElectionData = async (
                 newMapData[level][countyCode] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }
@@ -724,7 +730,7 @@ export const prepareElectionData = async (
                 newMapData[level][townCode] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }
@@ -866,7 +872,7 @@ export const prepareElectionData = async (
                   newMapData[level] = data
                   newMapData.isRunning = data.is_running
                   newMapData.isStarted = data.is_started
-                  newLastUpdate = data.updatedAt
+                  newLastUpdate = data.updatedAt || newLastUpdate
                 } catch (error) {
                   console.error(error)
                 }
@@ -956,7 +962,7 @@ export const prepareElectionData = async (
                   newMapData[level][countyCode] = data
                   newMapData.isRunning = data.is_running
                   newMapData.isStarted = data.is_started
-                  newLastUpdate = data.updatedAt
+                  newLastUpdate = data.updatedAt || newLastUpdate
                 } catch (error) {
                   console.error(error)
                 }
@@ -975,7 +981,7 @@ export const prepareElectionData = async (
                 subtypeKey
               )
             ) {
-              newInfoboxData.electionData = newMapData[0]?.districts.find(
+              newInfoboxData.electionData = newMapData[0]?.districts.filter(
                 (district) => district.county === levelControl.activeCode
               )
               newInfoboxData.isRunning = newMapData.isRunning
@@ -1006,7 +1012,7 @@ export const prepareElectionData = async (
                   newMapData[level][levelCode] = data
                   newMapData.isRunning = data.is_running
                   newMapData.isStarted = data.is_started
-                  newLastUpdate = data.updatedAt
+                  newLastUpdate = data.updatedAt || newLastUpdate
                 } catch (error) {
                   console.error(error)
                 }
@@ -1018,7 +1024,7 @@ export const prepareElectionData = async (
             if (subtypeKey !== 'all') {
               newInfoboxData.electionData = newMapData[1]?.[
                 countyCode
-              ]?.districts?.find((district) => {
+              ]?.districts?.filter((district) => {
                 const levelCode =
                   subtypeKey === 'normal'
                     ? district.county + district.area
@@ -1033,9 +1039,10 @@ export const prepareElectionData = async (
             // handle infobox data only
             // subtype 'all' won't show infoboxData
             if (subtypeKey !== 'all') {
+              const levelCode = subtypeKey === 'normal' ? areaCode : townCode
               newInfoboxData.electionData = newMapData[2][
-                townCode
-              ]?.districts.find(
+                levelCode
+              ]?.districts.filter(
                 (district) =>
                   district.county + district.town + district.vill ===
                   levelControl.activeCode
@@ -1114,7 +1121,7 @@ export const prepareElectionData = async (
                 newMapData[level][countyCode] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }
@@ -1141,7 +1148,7 @@ export const prepareElectionData = async (
                 newMapData[level][townCode] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }
@@ -1211,7 +1218,7 @@ export const prepareElectionData = async (
                 newMapData[level] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }
@@ -1241,7 +1248,7 @@ export const prepareElectionData = async (
                 newMapData[level][countyCode] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }
@@ -1273,7 +1280,7 @@ export const prepareElectionData = async (
                 newMapData[level][townCode] = data
                 newMapData.isRunning = data.is_running
                 newMapData.isStarted = data.is_started
-                newLastUpdate = data.updatedAt
+                newLastUpdate = data.updatedAt || newLastUpdate
               } catch (error) {
                 console.error(error)
               }

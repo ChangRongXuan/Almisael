@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import styled, { createGlobalStyle } from 'styled-components'
-import useWindowDimension from '../hook/useWindowDimensions'
 import { electionMapColor } from '../consts/colors'
 import { CollapsibleWrapper } from './collapsible/CollapsibleWrapper'
 import taiwanMap from '../public/images/taiwan_map.png'
 import taiwanMapMobile from '../public/images/taiwan_map_m.png'
 import Image from 'next/image'
 import { imageLoader } from '../loader'
-import { organization } from '../consts/config'
-import ReactGA from 'react-ga'
+import { og } from '../consts/config'
+import gtag from '../utils/gtag'
+import { useAppSelector } from '../hook/useRedux'
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -162,16 +162,16 @@ const StyledImage = styled(Image)`
 const teamMembers = [
   '監製：簡信昌',
   '製作人：李又如、王薏晴',
-  '工程：李文瀚、李法賢、蘇庭葳',
+  '工程：李文瀚、傅典洋、張容瑄、劉鴻明、',
+  '李又如、李法賢、蘇庭葳', // 工程名稱太長，強制換行
   '設計：曾立宇、吳曼努',
   '社群：徐湘芸',
 ]
 
 export const LandingPage = () => {
   const [show, setShow] = useState(false)
-
-  const { width } = useWindowDimension()
-  const isMobile = width <= 1024
+  const device = useAppSelector((state) => state.ui.device)
+  const isMobile = device !== 'desktop'
   const imgSrc = isMobile ? taiwanMapMobile : taiwanMap
 
   useEffect(() => {
@@ -181,10 +181,8 @@ export const LandingPage = () => {
   /** @type {React.MouseEventHandler} */
   const onEnterClickedHandler = () => {
     setShow(false)
-    ReactGA.event({
-      category: 'Projects',
-      action: 'Click',
-      label: 'landing page enter',
+    gtag.sendGAEvent('Click', {
+      project: `landing page enter / ${device}`,
     })
   }
 
@@ -198,33 +196,21 @@ export const LandingPage = () => {
           {!isMobile ? (
             <Intro>
               <h1>
-                2022 縣市長、議員選舉暨
+                2024 總統、立委選舉
                 <br />
-                公投開票即時資訊
+                開票即時資訊
               </h1>
-              <p>
-                {organization === 'readr-media'
-                  ? `2022 年縣市長、議員、公投開票結果看
-                READr！提供最詳盡的選舉票數地圖、歷年比較等功能。`
-                  : `鏡週刊即時關注 2022 年縣市長、議員、公投開票結果！並且提供最詳盡的選舉票數地圖、歷年比較功能。`}
-              </p>
+              <p>{og.descriptioin}</p>
             </Intro>
           ) : (
             <IntroWrapper preventCollapse={true}>
               <Intro>
                 <h1>
-                  2022
+                  2024 總統、立委選舉
                   <br />
-                  縣市長、議員選舉暨
-                  <br />
-                  公投開票即時資訊
+                  開票即時資訊
                 </h1>
-                <p>
-                  {organization === 'readr-media'
-                    ? `2022 年縣市長、議員、公投開票結果看
-                READr！提供最詳盡的選舉票數地圖、歷年比較等功能。`
-                    : `鏡週刊即時關注 2022 年縣市長、議員、公投開票結果！並且提供最詳盡的選舉票數地圖、歷年比較功能。`}
-                </p>
+                <p>{og.descriptioin}</p>
               </Intro>
             </IntroWrapper>
           )}

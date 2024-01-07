@@ -5,23 +5,37 @@ const SeatsChart = widgets.SeatChart.ReactComponent
 import { useAppSelector } from '../hook/useRedux'
 import { useEffect, useState } from 'react'
 import { countyMappingData } from '../consts/electionsConfig'
+import gtag from '../utils/gtag'
 
-const SeatsChartWrapper = styled(CollapsibleWrapper)`
+const SeatsChartDesktopWrapper = styled(CollapsibleWrapper)`
   width: 320px;
   background-color: white;
   pointer-events: auto;
   margin: 9px 0 0;
 `
 
-const StyledSeatsChart = styled(SeatsChart)`
+const SeatsChartMobileWrapper = styled.div`
+  background-color: white;
+  pointer-events: auto;
+  margin: 12px 0 0;
+  border-radius: 12px;
+  border: 1px solid #000;
+`
+const StyledSeatsDesktopChart = styled(SeatsChart)`
   max-height: 317px;
+  overflow: auto;
+`
+const StyledSeatsMobileChart = styled(SeatsChart)`
+  height: fit-content;
   overflow: auto;
 `
 
 /**
  * Control seats chart from @readr-media/react-election-widgets
+ * @param {Object} props
+ * @param {boolean} [props.isMobile]
  */
-export const SeatsPanel = () => {
+export const SeatsPanel = ({ isMobile = false }) => {
   const [switchOn, setSwitchOn] = useState(false)
   const electionType = useAppSelector(
     (state) => state.election.config.electionType
@@ -35,6 +49,9 @@ export const SeatsPanel = () => {
 
   const onSwitchChange = (switchOn) => {
     setSwitchOn(switchOn)
+    gtag.sendGAEvent('Click', {
+      project: `立委席次表切換`,
+    })
   }
 
   const initialSwitchInfo = {
@@ -56,7 +73,10 @@ export const SeatsPanel = () => {
   let data
 
   // For council member, only provide each county parties data and the titles for the SeatsChart to show
-  if (electionType === 'councilMember') {
+  if (
+    electionType === 'councilMember' &&
+    typeof seatMeta.wrapperTitle === 'string'
+  ) {
     data = seatData[1][countyCode]
     meta.wrapperTitle = seatMeta.wrapperTitle
     meta.componentTitle = location + seatMeta.componentTitle
@@ -73,8 +93,17 @@ export const SeatsPanel = () => {
       meta.componentTitle = `${
         seatMeta.componentTitle[subtype.key]
       } (${location})`
-      meta.switchInfo.onText = '區域'
-      meta.switchInfo.offText = offText
+      if (isMobile) {
+        meta.switchInfo = null
+      } else {
+        meta.switchInfo.onText = '區域'
+        meta.switchInfo.offText = offText
+      }
+    } else if (subtype.key === 'all' && isMobile) {
+      data = seatData.all
+      meta.wrapperTitle = seatMeta.wrapperTitle[subtype.key]
+      meta.componentTitle = seatMeta.componentTitle[subtype.key]
+      meta.switchInfo = null
     } else {
       data = switchOn ? seatData.all : seatData[0]
       meta.wrapperTitle = seatMeta.wrapperTitle[subtype.key]
@@ -95,11 +124,23 @@ export const SeatsPanel = () => {
 
   return (
     <>
-      {data && (
-        <SeatsChartWrapper title={meta.wrapperTitle}>
-          <StyledSeatsChart data={data} meta={meta} />
-        </SeatsChartWrapper>
-      )}
+      {data &&
+        (isMobile ? (
+          <SeatsChartMobileWrapper title={meta.wrapperTitle}>
+            <StyledSeatsMobileChart data={data} meta={meta} />
+          </SeatsChartMobileWrapper>
+        ) : (
+          <SeatsChartDesktopWrapper
+            title={meta.wrapperTitle}
+            onCollapse={() => {
+              gtag.sendGAEvent('Click', {
+                project: `席次表 收合`,
+              })
+            }}
+          >
+            <StyledSeatsDesktopChart data={data} meta={meta} />
+          </SeatsChartDesktopWrapper>
+        ))}
     </>
   )
 }

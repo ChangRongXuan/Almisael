@@ -63,7 +63,7 @@ const DistrictSelectorWrapper = styled.div`
   width: 100%;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: center;
+  align-items: start;
   justify-content: left;
   gap: 12px;
 `
@@ -155,8 +155,22 @@ export default function DistrictSelectors() {
     switch (electionsType) {
       case 'mayor':
       case 'councilMember':
-      case 'legislator':
         return [...districtMapping.sub]
+      case 'legislator':
+        if (currentElectionSubType.key === 'normal') {
+          return [...districtMapping.sub]
+        }
+        if (currentElectionSubType.key === 'all') {
+          return []
+        }
+        return [
+          {
+            type: districtMapping.type,
+            code: districtMapping.code,
+            name: districtMapping.name,
+          },
+          ...districtMapping.sub,
+        ]
       case 'referendum':
       case 'president':
         return [
@@ -171,7 +185,7 @@ export default function DistrictSelectors() {
       default:
         break
     }
-  }, [electionsType, districtMapping])
+  }, [electionsType, districtMapping, currentElectionSubType])
   const optionsForSecondDistrictSelector = useMemo(() => {
     if (currentCountyCode) {
       return [
@@ -220,7 +234,7 @@ export default function DistrictSelectors() {
             countyCode: currentCountyCode,
             townCode: '',
             villageCode: '',
-            constituencyCode: '',
+            areaCode: '',
             activeCode: currentCountyCode,
           })
         )
@@ -233,7 +247,7 @@ export default function DistrictSelectors() {
             countyCode: currentCountyCode,
             townCode: currentTownCode,
             villageCode: '',
-            constituencyCode: '',
+            areaCode: '',
             activeCode: currentTownCode,
           })
         )
@@ -246,7 +260,7 @@ export default function DistrictSelectors() {
       //       countyCode: currentCountyCode,
       //       townCode: '',
       //       villageCode: '',
-      //       constituencyCode: currentConstituencyCode,
+      //       areaCode: currentConstituencyCode,
       //       activeCode: currentConstituencyCode,
       //     })
       //   )
@@ -259,7 +273,7 @@ export default function DistrictSelectors() {
             countyCode: currentCountyCode,
             townCode: currentTownCode,
             villageCode: currentVillageCode,
-            constituencyCode: '',
+            areaCode: '',
             activeCode: currentVillageCode,
           })
         )
@@ -303,9 +317,11 @@ export default function DistrictSelectors() {
       case 'president':
         break
       case 'legislator':
-        if (!currentCountyCode) {
-          setCurrentDistrictType('county')
-          setCurrentCountyCode(allCounty?.[0]?.code)
+        if (currentElectionSubType.key === 'all') {
+          setCurrentDistrictType('nation')
+          setCurrentCountyCode('')
+          setCurrentTownCode('')
+          setCurrentVillageCode('')
         }
         break
       //todo: 公投
@@ -315,6 +331,7 @@ export default function DistrictSelectors() {
         break
     }
   }, [
+    currentElectionSubType,
     hasDistrictMapping,
     electionsType,
     allCounty,
@@ -333,7 +350,7 @@ export default function DistrictSelectors() {
         options={optionsForFirstDistrictSelector}
         districtCode={currentCountyCode}
         onSelected={handleOnClick}
-        placeholderValue="台灣"
+        placeholderValue="全國"
       ></Selector>
 
       <Selector

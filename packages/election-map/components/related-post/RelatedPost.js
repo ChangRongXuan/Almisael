@@ -3,6 +3,12 @@ import axios from 'axios'
 import styled from 'styled-components'
 import { Card } from './Card'
 import { electionMapColor } from '../../consts/colors'
+import gtag from '../../utils/gtag'
+import { useAppSelector } from '../../hook/useRedux'
+
+/**
+ * @typedef {import('./Card').Post} Post
+ */
 
 const Wrapper = styled.div`
   position: relative;
@@ -48,11 +54,17 @@ const Cards = styled.div`
     gap: 26px 16px;
   }
 `
+/** @type {Array<Post>} */
+const defaultPosts = []
 
 export const RelatedPost = () => {
-  const [posts, setPosts] = useState([])
+  const [posts, setPosts] = useState(defaultPosts)
   const [nextShowingIndex, setNextShowingIndex] = useState(12)
-  const observer = useRef()
+  const device = useAppSelector((state) => state.ui.device)
+  /**
+   * @type {React.MutableRefObject<IntersectionObserver | null>}
+   */
+  const observer = useRef(null)
 
   const displayPosts = posts.slice(0, nextShowingIndex)
 
@@ -81,10 +93,14 @@ export const RelatedPost = () => {
 
   useEffect(() => {
     const fetchResult = async () => {
-      const response = await axios(
-        'https://statics.mirrormedia.mg/json/5b7bbdbb34cc3f1000619fa3.json'
-      )
-      setPosts(response?.data?._items || [])
+      try {
+        const response = await axios(
+          'https://v3-statics.mirrormedia.mg/files/json/2024election_relatedposts.json'
+        )
+        setPosts(response?.data?.posts || [])
+      } catch (error) {
+        console.error('Fetch mirrormedia related posts failed')
+      }
     }
     fetchResult()
   }, [])
@@ -96,13 +112,14 @@ export const RelatedPost = () => {
         <Cards>
           {displayPosts.map((post, index) => (
             <Card
-              key={post._id}
+              key={post.id}
               item={post}
               ref={index === displayPosts.length - 1 ? lastArticleRef : null}
-              // ref={lastArticleRef}
-              value={
-                index === displayPosts.length - 1 ? 'lastArticleRef' : null
-              }
+              onClick={() => {
+                gtag.sendGAEvent('Click', {
+                  project: `related post: ${post.title} / ${device}`,
+                })
+              }}
             />
           ))}
         </Cards>

@@ -1,6 +1,16 @@
 import styled from 'styled-components'
 import { getInfoBoxData } from '../../utils/infoboxData'
 
+/**
+ *  Inside infobox data, a summary object or district object may have a note object
+ *  which is special description to the current infobox data.
+ *  The note object only exists when needed and the text must exist to describe the situation.
+ *  The note.displayVotes flag is used for infobox component to decide if the infobox data should still be displayed.
+ * @typedef {Object} InfoboxNote
+ * @property {string} text - note content to add additional description to the current infobox data
+ * @property {boolean} displayVotes - a flag to indicate whether the following infobox data should display or not
+ */
+
 const InfoboxWrapper = styled.div`
   font-family: 'Noto Sans TC', sans-serif;
   padding: 16px 22px;
@@ -34,16 +44,18 @@ const PresidentCandidate = styled.p`
 const PresidentCandidateName = styled.div`
   max-width: 160px;
   font-weight: 700;
-  ${({ compareMode }) => compareMode && `max-width: 100px;`}
 `
 
 const PresidentCandidateParty = styled.div`
   font-weight: 350;
-  ${({ compareMode }) => compareMode && `max-width: 100px;`}
 `
 
 const InfoboxText = styled.p`
   margin: 0;
+`
+
+const InfoboxNote = styled.p`
+  margin-bottom: 28px;
 `
 
 const ElectedIcon = styled.div`
@@ -101,13 +113,6 @@ const HintWrapper = styled.p`
   }
 `
 
-const MobileCompareName = styled.p`
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  margin-bottom: 7px;
-`
-
 const electedSvg = (
   <svg
     width="20"
@@ -142,11 +147,23 @@ const PresidentInfobox = ({ level, data, isRunning, isCurrentYear }) => {
     )
   }
 
+  /** @type {InfoboxNote | undefined} */
+  const note = data.note
+
+  // check the type of InfoboxNote for the business logic of the note
+  if (note?.text && !note?.displayVotes) {
+    return (
+      <InfoboxScrollWrapper>
+        <InfoboxNote>{note.text}</InfoboxNote>
+      </InfoboxScrollWrapper>
+    )
+  }
+
   const isCurrentYearRunningJsx = isCurrentYear ? (
     isRunning ? (
       <RunningHint>開票中</RunningHint>
     ) : (
-      <RunningHint>開票結束</RunningHint>
+      <FinalHint>開票結束</FinalHint>
     )
   ) : (
     <></>
@@ -155,6 +172,7 @@ const PresidentInfobox = ({ level, data, isRunning, isCurrentYear }) => {
   const { profRate, candidates } = data
   return (
     <InfoboxScrollWrapper>
+      {note?.text && <InfoboxNote>{note.text}</InfoboxNote>}
       <PresidentTitle>
         {level === 0 && '總'}投票率 {profRate}% {isCurrentYearRunningJsx}
       </PresidentTitle>
@@ -202,26 +220,28 @@ const MayorCandidate = styled.div`
 const MayorCandidateName = styled.div`
   max-width: 160px;
   font-weight: 700;
-  ${({ compareMode }) => compareMode && `max-width: 100px;`}
 `
 const MayorCandidateParty = styled.div`
   font-weight: 350;
-  ${({ compareMode }) => compareMode && `max-width: 100px;`}
 `
 
-const MayorInfobox = ({
-  level,
-  data,
-  isRunning,
-  compareMode,
-  isCurrentYear,
-  compareName,
-}) => {
+const MayorInfobox = ({ level, data, isRunning, isCurrentYear }) => {
   if (typeof data === 'string') {
     return (
       <InfoboxScrollWrapper>
-        {compareName && <MobileCompareName>{compareName}</MobileCompareName>}
         <InfoboxText>{data}</InfoboxText>
+      </InfoboxScrollWrapper>
+    )
+  }
+
+  /** @type {InfoboxNote | undefined} */
+  const note = data.note
+
+  // check the type of InfoboxNote for the business logic of the note
+  if (note?.text && !note?.displayVotes) {
+    return (
+      <InfoboxScrollWrapper>
+        <InfoboxNote>{note.text}</InfoboxNote>
       </InfoboxScrollWrapper>
     )
   }
@@ -229,7 +249,7 @@ const MayorInfobox = ({
   const { profRate, candidates } = data
   return (
     <InfoboxScrollWrapper>
-      {compareName && <MobileCompareName>{compareName}</MobileCompareName>}
+      {note?.text && <InfoboxNote>{note.text}</InfoboxNote>}
       <MayorTitle>
         {level === 1 && '總'}投票率 {profRate}%
         {isCurrentYear ? (
@@ -253,10 +273,8 @@ const MayorInfobox = ({
           const elected = candidate.candVictor === '*'
           return (
             <MayorCandidate elected={elected} key={candidate.candNo}>
-              <MayorCandidateName compareMode={compareMode}>
-                {candidate.name}
-              </MayorCandidateName>
-              <MayorCandidateParty compareMode={compareMode}>
+              <MayorCandidateName>{candidate.name}</MayorCandidateName>
+              <MayorCandidateParty>
                 {candidate.party} {candidate.tksRate}%
               </MayorCandidateParty>
               {elected && <ElectedIcon>{electedSvg} </ElectedIcon>}
@@ -267,10 +285,40 @@ const MayorInfobox = ({
   )
 }
 
-const LegislatorDistrict = styled.div`
+const LegislatorTypeWrapper = styled.div`
+  &:nth-of-type(2) {
+    margin-top: 20px;
+  }
+`
+
+const NormalLegislatorCandidate = styled.div`
+  position: relative;
+  display: table;
+  margin-top: 20px;
+  align-items: center;
+  line-height: 23px;
+  ${
+    /**
+     * @param {Object} props
+     * @param {boolean} [props.elected]
+     */
+    ({ elected }) => elected && 'color: #DB4C65;'
+  }
+`
+
+const NormalLegislatorCandidateName = styled.div`
+  max-width: 160px;
+  font-weight: 700;
+`
+
+const NormalLegislatorCandidateParty = styled.div`
+  font-weight: 350;
+`
+
+const NormalLegislatorDistrict = styled.div`
   padding: 20px 0;
   border-top: 1px solid #000;
-  &:nth-of-type(2) {
+  &:first-of-type {
     border-top: unset;
     padding-top: unset;
   }
@@ -278,90 +326,418 @@ const LegislatorDistrict = styled.div`
     padding-bottom: unset;
   }
 `
-const LegislatorConstituency = styled.div`
-  font-size: 17px;
+
+const NormalLegislatorArea = styled.div`
+  font-weight: 700;
+  line-height: 23px;
   color: gray;
 `
 
-const LegislatorTitle = styled.div`
-  margin-bottom: 20px;
+const NormalLegislatorTitle = styled.div`
   font-weight: 700;
 `
 
-const LegislatorCandidate = styled.div`
-  display: flex;
-  align-items: center;
-  font-weight: 700;
-  line-height: 26px;
-  ${({ elected }) => elected && 'color: #DB4C65;'}
-`
-
-const LegislatorInfobox = ({ level, data }) => {
-  return (
-    <InfoboxScrollWrapper>
-      <InfoboxText>開發中</InfoboxText>
-    </InfoboxScrollWrapper>
+/**
+ *
+ * @param {Object} props
+ * @param {number} props.level
+ * @param {Object} props.data
+ * @param {boolean} props.isRunning
+ * @param {boolean} props.isCurrentYear
+ * @returns {JSX.Element}
+ */
+const NormalLegislatorInfobox = ({ level, data, isRunning, isCurrentYear }) => {
+  const isCurrentYearRunningJsx = isCurrentYear ? (
+    isRunning ? (
+      <HintWrapper>
+        <RunningHint>開票中</RunningHint>
+      </HintWrapper>
+    ) : (
+      <HintWrapper>
+        <FinalHint>開票結束</FinalHint>
+      </HintWrapper>
+    )
+  ) : (
+    <></>
   )
-  if (level === 0) {
+
+  // check the type of InfoboxNote for the business logic of the note
+  // use one of the note
+  /** @type {InfoboxNote | undefined} */
+  const note = data.find((data) => !!data.note?.text)?.note
+
+  if (note?.text && !note?.displayVotes) {
     return (
       <InfoboxScrollWrapper>
-        <InfoboxText>點擊地圖看更多資料</InfoboxText>
+        <InfoboxNote>{note.text}</InfoboxNote>
       </InfoboxScrollWrapper>
     )
   }
-  if (level === 1) {
-    const { summary, districts } = data
-    const { profRate } = summary
 
+  if (level === 1) {
+    const districts = data
     return (
       <InfoboxScrollWrapper>
-        <LegislatorTitle>投票率 {profRate}%</LegislatorTitle>
-        {districts.map(({ county, area, range, candidates }) => {
-          const legislatorIdPrefix = county + area
-          const constituency = range.split(' ')[1]
-          const candidateComps = candidates.map((candidate) => {
-            const elected = candidate.candVictor === '*'
-            return (
-              <LegislatorCandidate
-                elected={elected}
-                key={legislatorIdPrefix + candidate.candNo}
-              >
-                {candidate.name} {candidate.party} {candidate.tksRate}%
-                {elected && <ElectedIcon>{electedSvg} </ElectedIcon>}
-              </LegislatorCandidate>
-            )
-          })
+        {note?.text && <InfoboxNote>{note.text}</InfoboxNote>}
+        {isCurrentYearRunningJsx}
+        {districts.map(({ county, area, range, candidates, profRate }) => {
+          const legislatorPrefix = county + area
+          const areaName = range.split(' ')[1]
+          const candidateComps = [...candidates]
+            .sort((cand1, cand2) => {
+              if (cand1.tksRate === cand2.tksRate) {
+                return 0
+              }
+              return cand1.tksRate < cand2.tksRate ? 1 : -1
+            })
+            .map((candidate) => {
+              const elected = candidate.candVictor === '*'
+              return (
+                <NormalLegislatorCandidate
+                  elected={elected}
+                  key={legislatorPrefix + candidate.candNo}
+                >
+                  <NormalLegislatorCandidateName>
+                    {candidate.name}
+                  </NormalLegislatorCandidateName>
+                  <NormalLegislatorCandidateParty>
+                    {candidate.party} {candidate.tksRate}%
+                  </NormalLegislatorCandidateParty>
+                  {elected && <ElectedIcon>{electedSvg} </ElectedIcon>}
+                </NormalLegislatorCandidate>
+              )
+            })
           return (
-            <LegislatorDistrict key={legislatorIdPrefix}>
-              <LegislatorConstituency>{constituency}</LegislatorConstituency>
+            <NormalLegislatorDistrict key={legislatorPrefix}>
+              <NormalLegislatorArea>{areaName}</NormalLegislatorArea>
+              <NormalLegislatorTitle>投票率 {profRate}%</NormalLegislatorTitle>
               {candidateComps}
-            </LegislatorDistrict>
+            </NormalLegislatorDistrict>
           )
         })}
       </InfoboxScrollWrapper>
     )
   }
 
-  const { profRate, candidates, county, area } = data
-  const legislatorIdPrefix = county + area
-
   return (
     <InfoboxScrollWrapper>
-      <LegislatorTitle>投票率 {profRate}%</LegislatorTitle>
-      {candidates.map((candidate) => {
-        const elected = candidate.candVictor === '*'
+      {note?.text && <InfoboxNote>{note.text}</InfoboxNote>}
+      {data.map((district) => {
+        const { candidates, profRate, type, county, town, area } = district
+        const legislatorPrefix = county + town + area + type
+
         return (
-          <LegislatorCandidate
-            elected={elected}
-            key={legislatorIdPrefix + candidate.candNo}
-          >
-            {candidate.name} {candidate.party} {candidate.tksRate}%
-            {elected && <ElectedIcon>{electedSvg} </ElectedIcon>}
-          </LegislatorCandidate>
+          <LegislatorTypeWrapper key={legislatorPrefix}>
+            <NormalLegislatorTitle>
+              投票率 {profRate}% {isCurrentYearRunningJsx}
+            </NormalLegislatorTitle>
+            {[...candidates]
+              .sort((cand1, cand2) => {
+                if (cand1.tksRate === cand2.tksRate) {
+                  return 0
+                }
+                return cand1.tksRate < cand2.tksRate ? 1 : -1
+              })
+              .map((candidate) => {
+                const elected = candidate.candVictor === '*'
+                return (
+                  <NormalLegislatorCandidate
+                    elected={elected}
+                    id={legislatorPrefix + candidate.candNo}
+                    key={legislatorPrefix + candidate.candNo}
+                  >
+                    <NormalLegislatorCandidateName>
+                      {candidate.name}
+                    </NormalLegislatorCandidateName>
+                    <NormalLegislatorCandidateParty>
+                      {candidate.party} {candidate.tksRate}%
+                    </NormalLegislatorCandidateParty>
+                    {elected && <ElectedIcon>{electedSvg} </ElectedIcon>}
+                  </NormalLegislatorCandidate>
+                )
+              })}
+          </LegislatorTypeWrapper>
         )
       })}
     </InfoboxScrollWrapper>
   )
+}
+
+const IndigenousLegislatorTitle = styled.div`
+  font-weight: 700;
+`
+
+const IndigenousLegislatorCandidate = styled.div`
+  position: relative;
+  display: table;
+  margin-top: 20px;
+  align-items: center;
+  line-height: 23px;
+  ${
+    /**
+     * @param {Object} props
+     * @param {boolean} [props.elected]
+     */
+    ({ elected }) => elected && 'color: #DB4C65;'
+  }
+`
+
+const IndigenousLegislatorCandidateName = styled.div`
+  max-width: 160px;
+  font-weight: 700;
+`
+
+const IndigenousLegislatorCandidateParty = styled.div`
+  font-weight: 350;
+`
+
+/**
+ * @param {Object} props
+ * @param {Object} props.data
+ * @param {boolean} props.isRunning
+ * @param {boolean} props.isCurrentYear
+ * @returns {JSX.Element}
+ */
+const IndigenousLegislatorInfobox = ({ data, isRunning, isCurrentYear }) => {
+  const isCurrentYearRunningJsx = isCurrentYear ? (
+    isRunning ? (
+      <RunningHint>開票中</RunningHint>
+    ) : (
+      <FinalHint>開票結束</FinalHint>
+    )
+  ) : (
+    <></>
+  )
+
+  let infoboxData = Array.isArray(data) ? data : [data]
+
+  // check the type of InfoboxNote for the business logic of the note
+  // use one of the note
+  /** @type {InfoboxNote | undefined} */
+  const note = infoboxData.find((data) => !!data.note?.text)?.note
+
+  if (note?.text && !note?.displayVotes) {
+    return (
+      <InfoboxScrollWrapper>
+        <InfoboxNote>{note.text}</InfoboxNote>
+      </InfoboxScrollWrapper>
+    )
+  }
+
+  return (
+    <InfoboxScrollWrapper>
+      {note?.text && <InfoboxNote>{note.text}</InfoboxNote>}
+      {infoboxData.map((district) => {
+        const { candidates, profRate, type, county, town, area } = district
+        const legislatorPrefix = county + town + area + type
+
+        return (
+          <LegislatorTypeWrapper key={legislatorPrefix}>
+            <IndigenousLegislatorTitle>
+              投票率 {profRate}% {isCurrentYearRunningJsx}
+            </IndigenousLegislatorTitle>
+            {[...candidates]
+              .sort((cand1, cand2) => {
+                if (cand1.tksRate === cand2.tksRate) {
+                  return 0
+                }
+                return cand1.tksRate < cand2.tksRate ? 1 : -1
+              })
+              .map((candidate) => {
+                const elected = candidate.candVictor === '*'
+                return (
+                  <IndigenousLegislatorCandidate
+                    elected={elected}
+                    id={legislatorPrefix + candidate.candNo}
+                    key={legislatorPrefix + candidate.candNo}
+                  >
+                    <IndigenousLegislatorCandidateName>
+                      {candidate.name}
+                    </IndigenousLegislatorCandidateName>
+                    <IndigenousLegislatorCandidateParty>
+                      {candidate.party} {candidate.tksRate}%
+                    </IndigenousLegislatorCandidateParty>
+                    {elected && <ElectedIcon>{electedSvg} </ElectedIcon>}
+                  </IndigenousLegislatorCandidate>
+                )
+              })}
+          </LegislatorTypeWrapper>
+        )
+      })}
+    </InfoboxScrollWrapper>
+  )
+}
+
+const PartyLegislatorTitle = styled.div`
+  font-weight: 700;
+  margin-bottom: 16px;
+`
+
+const PartyLegislatorCandidate = styled.div`
+  position: relative;
+  display: table;
+  align-items: center;
+  line-height: 23px;
+`
+
+const PartyLegislatorCandidateParty = styled.div`
+  font-weight: 700;
+`
+
+const PartyLegislatorCandidateSeats = styled.span`
+  font-weight: 400;
+  margin-left: 11px;
+`
+const PartyLegislatorTitleHint = styled.div`
+  font-size: 13px;
+  font-weight: 400;
+  margin-top: 5px;
+`
+
+/**
+ * @param {Object} props
+ * @param {Object} props.data
+ * @param {boolean} props.isRunning
+ * @param {boolean} props.isCurrentYear
+ * @returns {JSX.Element}
+ */
+const PartyLegislatorInfobox = ({ data, isRunning, isCurrentYear }) => {
+  const isCurrentYearRunningJsx = isCurrentYear ? (
+    isRunning ? (
+      <RunningHint>開票中</RunningHint>
+    ) : (
+      <FinalHint>開票結束</FinalHint>
+    )
+  ) : (
+    <></>
+  )
+  let infoboxData = Array.isArray(data) ? data : [data]
+
+  // check the type of InfoboxNote for the business logic of the note
+  // use one of the note
+  /** @type {InfoboxNote | undefined} */
+  const note = infoboxData.find((data) => !!data.note?.text)?.note
+
+  if (note?.text && !note?.displayVotes) {
+    return (
+      <InfoboxScrollWrapper>
+        <InfoboxNote>{note.text}</InfoboxNote>
+      </InfoboxScrollWrapper>
+    )
+  }
+
+  return (
+    <InfoboxScrollWrapper>
+      {note?.text && <InfoboxNote>{note.text}</InfoboxNote>}
+      {/* 
+          Although all party legislator data should only contain one district to render,
+          use map function to handle cause all legislator infobox data is filled in array.
+       */}
+      {infoboxData.map((district) => {
+        const { candidates, profRate, type, county, town, area } = district
+        const legislatorPrefix = county + town + area + type
+
+        return (
+          <LegislatorTypeWrapper key={legislatorPrefix}>
+            <PartyLegislatorTitle>
+              投票率 {profRate}% {isCurrentYearRunningJsx}
+              <PartyLegislatorTitleHint>
+                ＊此為第一階段投票率
+              </PartyLegislatorTitleHint>
+            </PartyLegislatorTitle>
+            {[...candidates]
+              .sort((cand1, cand2) => {
+                if (cand1.tksRate === cand2.tksRate) {
+                  return 0
+                }
+                return cand1.tksRate < cand2.tksRate ? 1 : -1
+              })
+              .map((candidate) => {
+                return (
+                  <PartyLegislatorCandidate
+                    id={legislatorPrefix + candidate.candNo}
+                    key={legislatorPrefix + candidate.candNo}
+                  >
+                    <PartyLegislatorCandidateParty>
+                      {candidate.party} {candidate.tksRate}%
+                      {candidate.seats !== 0 ? (
+                        <PartyLegislatorCandidateSeats>
+                          {`最終獲${candidate.seats}席`}
+                        </PartyLegislatorCandidateSeats>
+                      ) : (
+                        <></>
+                      )}
+                    </PartyLegislatorCandidateParty>
+                  </PartyLegislatorCandidate>
+                )
+              })}
+          </LegislatorTypeWrapper>
+        )
+      })}
+    </InfoboxScrollWrapper>
+  )
+}
+
+/**
+ *
+ * @param {Object} props
+ * @param {number} props.level
+ * @param {Object} props.data
+ * @param {boolean} props.isRunning
+ * @param {boolean} props.isCurrentYear
+ * @param {import('../../consts/electionsConfig').ElectionSubtype} props.subtype
+ * @returns {JSX.Element}
+ */
+const LegislatorInfobox = ({
+  level,
+  data,
+  isRunning,
+  isCurrentYear,
+  subtype,
+}) => {
+  if (typeof data === 'string') {
+    return (
+      <InfoboxScrollWrapper>
+        <InfoboxText>{data}</InfoboxText>
+      </InfoboxScrollWrapper>
+    )
+  }
+
+  // separate all types for individual component to support extreme custom UI for each type
+  switch (subtype.key) {
+    case 'normal':
+      return (
+        <NormalLegislatorInfobox
+          level={level}
+          data={data}
+          isRunning={isRunning}
+          isCurrentYear={isCurrentYear}
+        />
+      )
+    case 'mountainIndigenous':
+    case 'plainIndigenous':
+      return (
+        <IndigenousLegislatorInfobox
+          data={data}
+          isRunning={isRunning}
+          isCurrentYear={isCurrentYear}
+        />
+      )
+    case 'party':
+      return (
+        <PartyLegislatorInfobox
+          data={data}
+          isRunning={isRunning}
+          isCurrentYear={isCurrentYear}
+        />
+      )
+    default:
+      console.error(
+        'legislator infobox render with unexpected type',
+        subtype.key
+      )
+      break
+  }
 }
 
 const CouncilMemberDistrict = styled.div`
@@ -382,7 +758,7 @@ const CouncilMemberTypeWrapper = styled.div`
   }
 `
 
-const CouncilMemberConstituency = styled.div`
+const CouncilMemberArea = styled.div`
   font-weight: 700;
   line-height: 23px;
   color: gray;
@@ -404,35 +780,37 @@ const CouncilMemberCandidate = styled.div`
 const CouncilMemberCandidateName = styled.div`
   max-width: 160px;
   font-weight: 700;
-  ${({ compareMode }) => compareMode && `max-width: 100px;`}
 `
 const CouncilMemberCandidateParty = styled.div`
   font-weight: 350;
-  ${({ compareMode }) => compareMode && `max-width: 100px;`}
 `
 
-const CouncilMemberInfobox = ({
-  level,
-  data,
-  compareMode,
-  isRunning,
-  isCurrentYear,
-  compareName,
-}) => {
+const CouncilMemberInfobox = ({ level, data, isRunning, isCurrentYear }) => {
   if (typeof data === 'string') {
     return (
       <InfoboxScrollWrapper>
-        {compareName && <MobileCompareName>{compareName}</MobileCompareName>}
         <InfoboxText>{data}</InfoboxText>
       </InfoboxScrollWrapper>
     )
   }
 
   if (level === 1) {
+    /** @type {InfoboxNote | undefined} */
+    const note = data.note
+
+    // check the type of InfoboxNote for the business logic of the note
+    if (note?.text && !note?.displayVotes) {
+      return (
+        <InfoboxScrollWrapper>
+          <InfoboxNote>{note.text}</InfoboxNote>
+        </InfoboxScrollWrapper>
+      )
+    }
+
     const { districts } = data
     return (
       <InfoboxScrollWrapper>
-        {compareName && <MobileCompareName>{compareName}</MobileCompareName>}
+        {note?.text && <InfoboxNote>{note.text}</InfoboxNote>}
         {isCurrentYear ? (
           isRunning ? (
             <HintWrapper>
@@ -448,7 +826,7 @@ const CouncilMemberInfobox = ({
         )}
         {districts.map(({ county, area, range, candidates, profRate }) => {
           const councilMemberdPrefix = county + area
-          const constituency = range.split(' ')[1]
+          const areaName = range.split(' ')[1]
           const candidateComps = [...candidates]
             .sort((cand1, cand2) => {
               if (cand1.tksRate === cand2.tksRate) {
@@ -463,10 +841,10 @@ const CouncilMemberInfobox = ({
                   elected={elected}
                   key={councilMemberdPrefix + candidate.candNo}
                 >
-                  <CouncilMemberCandidateName compareMode={compareMode}>
+                  <CouncilMemberCandidateName>
                     {candidate.name}
                   </CouncilMemberCandidateName>
-                  <CouncilMemberCandidateParty compareMode={compareMode}>
+                  <CouncilMemberCandidateParty>
                     {candidate.party} {candidate.tksRate}%
                   </CouncilMemberCandidateParty>
                   {elected && <ElectedIcon>{electedSvg} </ElectedIcon>}
@@ -475,14 +853,25 @@ const CouncilMemberInfobox = ({
             })
           return (
             <CouncilMemberDistrict key={councilMemberdPrefix}>
-              <CouncilMemberConstituency>
-                {constituency}
-              </CouncilMemberConstituency>
+              <CouncilMemberArea>{areaName}</CouncilMemberArea>
               <CouncilMemberTitle>投票率 {profRate}%</CouncilMemberTitle>
               {candidateComps}
             </CouncilMemberDistrict>
           )
         })}
+      </InfoboxScrollWrapper>
+    )
+  }
+
+  // check the type of InfoboxNote for the business logic of the note
+  // use one of the note
+  /** @type {InfoboxNote | undefined} */
+  const note = data.find((data) => !!data.note?.text)?.note
+
+  if (note?.text && !note?.displayVotes) {
+    return (
+      <InfoboxScrollWrapper>
+        <InfoboxNote>{note.text}</InfoboxNote>
       </InfoboxScrollWrapper>
     )
   }
@@ -521,10 +910,10 @@ const CouncilMemberInfobox = ({
                   id={councilMemberdPrefix + candidate.candNo}
                   key={councilMemberdPrefix + candidate.candNo}
                 >
-                  <CouncilMemberCandidateName compareMode={compareMode}>
+                  <CouncilMemberCandidateName>
                     {candidate.name}
                   </CouncilMemberCandidateName>
-                  <CouncilMemberCandidateParty compareMode={compareMode}>
+                  <CouncilMemberCandidateParty>
                     {candidate.party} {candidate.tksRate}%
                   </CouncilMemberCandidateParty>
                   {elected && <ElectedIcon>{electedSvg} </ElectedIcon>}
@@ -536,9 +925,9 @@ const CouncilMemberInfobox = ({
     } else {
       return (
         <CouncilMemberTypeWrapper key={councilMemberdPrefix}>
-          <CouncilMemberConstituency>
+          <CouncilMemberArea>
             {type === 'plainIndigenous' ? '平地原住民' : '山地原住民'}
-          </CouncilMemberConstituency>
+          </CouncilMemberArea>
           <CouncilMemberTitle>
             投票率 {profRate}%
             {isCurrentYear ? (
@@ -565,10 +954,10 @@ const CouncilMemberInfobox = ({
                   elected={elected}
                   key={councilMemberdPrefix + candidate.candNo}
                 >
-                  <CouncilMemberCandidateName compareMode={compareMode}>
+                  <CouncilMemberCandidateName>
                     {candidate.name}
                   </CouncilMemberCandidateName>
-                  <CouncilMemberCandidateParty compareMode={compareMode}>
+                  <CouncilMemberCandidateParty>
                     {candidate.party} {candidate.tksRate}%
                   </CouncilMemberCandidateParty>
                   {elected && <ElectedIcon>{electedSvg} </ElectedIcon>}
@@ -582,7 +971,7 @@ const CouncilMemberInfobox = ({
 
   return (
     <InfoboxScrollWrapper>
-      {compareName && <MobileCompareName>{compareName}</MobileCompareName>}
+      {note?.text && <InfoboxNote>{note.text}</InfoboxNote>}
       {councilMembers}
     </InfoboxScrollWrapper>
   )
@@ -617,11 +1006,10 @@ const ReferendumCandidate = styled.div`
   line-height: 23px;
 `
 
-const ReferendumInfobox = ({ data, isRunning, isCurrentYear, compareName }) => {
+const ReferendumInfobox = ({ data, isRunning, isCurrentYear }) => {
   if (typeof data === 'string') {
     return (
       <InfoboxScrollWrapper>
-        {compareName && <MobileCompareName>{compareName}</MobileCompareName>}
         <InfoboxText>{data}</InfoboxText>
       </InfoboxScrollWrapper>
     )
@@ -630,9 +1018,22 @@ const ReferendumInfobox = ({ data, isRunning, isCurrentYear, compareName }) => {
   const { profRate, adptVictor, agreeRate, disagreeRate } = data
   const noResult = adptVictor !== 'Y' && adptVictor !== 'N'
   const pass = adptVictor === 'Y'
+
+  /** @type {InfoboxNote | undefined} */
+  const note = data.note
+
+  // check the type of InfoboxNote for the business logic of the note
+  if (note?.text && !note?.displayVotes) {
+    return (
+      <InfoboxScrollWrapper>
+        <InfoboxNote>{note.text}</InfoboxNote>
+      </InfoboxScrollWrapper>
+    )
+  }
+
   return (
     <InfoboxScrollWrapper>
-      {compareName && <MobileCompareName>{compareName}</MobileCompareName>}
+      {note?.text && <InfoboxNote>{note.text}</InfoboxNote>}
       {isCurrentYear ? (
         isRunning ? (
           <HintWrapper>
@@ -686,63 +1087,15 @@ const ReferendumInfobox = ({ data, isRunning, isCurrentYear, compareName }) => {
 }
 
 /**
- * The complete Triforce, or one or more components of the Triforce.
- * @typedef {Object} InfoboxTemplateInput
- * @property {string} type - Election types, like president
- * @property {number} level - Info level: 1. country, 2. county, 3. towns / constituency 4. village
- * @property {number} profRate - Total vote rate
- * @property {object[]} candidates - All candidates info
- */
-
-/**
- * Create infobox template based on the election infos
- * @param {InfoboxTemplateInput} input
- * @return {string} template
- */
-
-// const templates = {
-//   president: `
-//   投票率 ${profRate}
-//   ${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-//   ${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-//   `,
-//   mayor: `
-//   總投票率 ${profRate}
-//   ${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-//   ${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-//   `,
-//   councilMember: `
-//   ${constituency}
-//   投票率 ${profRate}
-//   ${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-//   ${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-//   `,
-//   legislator: `
-//   ${constituency}
-//   投票率 ${profRate}
-//   ${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-//   ${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-//   `,
-// }
-
-/**
  *
  * @param {Object} props
  * @param {import('../../utils/electionsData').InfoboxData} props.data
- * @param {boolean} props.compareMode
  * @param {boolean} props.isCurrentYear
- * @param {string} props.compareName
  * @param {number} props.year
  * @param {import('../../consts/electionsConfig').ElectionSubtype} props.subtype
  * @returns {JSX.Element}
  */
-export const Infobox = ({
-  data,
-  compareMode,
-  isCurrentYear,
-  compareName,
-  year,
-}) => {
+export const Infobox = ({ data, isCurrentYear, year, subtype }) => {
   const { electionType, level, electionData, isRunning, isStarted } = data
   let infobox
 
@@ -757,7 +1110,8 @@ export const Infobox = ({
         electionData,
         level,
         year,
-        isStarted
+        isStarted,
+        isRunning
       )
       infobox = (
         <PresidentInfobox
@@ -774,22 +1128,37 @@ export const Infobox = ({
         electionData,
         level,
         year,
-        isStarted
+        isStarted,
+        isRunning
       )
       infobox = (
         <MayorInfobox
           level={level}
           data={data}
           isRunning={isRunning}
-          compareMode={compareMode}
           isCurrentYear={isCurrentYear}
-          compareName={compareName}
         />
       )
       break
     }
     case 'legislator': {
-      infobox = <LegislatorInfobox level={level} data={electionData} />
+      const data = getInfoboxDataOnCertainElectionType(
+        electionData,
+        level,
+        year,
+        isStarted,
+        isRunning,
+        subtype
+      )
+      infobox = (
+        <LegislatorInfobox
+          level={level}
+          data={data}
+          isRunning={isRunning}
+          isCurrentYear={isCurrentYear}
+          subtype={subtype}
+        />
+      )
       break
     }
     case 'councilMember': {
@@ -797,16 +1166,15 @@ export const Infobox = ({
         electionData,
         level,
         year,
-        isStarted
+        isStarted,
+        isRunning
       )
       infobox = (
         <CouncilMemberInfobox
           level={level}
           data={data}
           isRunning={isRunning}
-          compareMode={compareMode}
           isCurrentYear={isCurrentYear}
-          compareName={compareName}
         />
       )
       break
@@ -816,14 +1184,14 @@ export const Infobox = ({
         electionData,
         level,
         year,
-        isStarted
+        isStarted,
+        isRunning
       )
       infobox = (
         <ReferendumInfobox
           data={data}
           isRunning={isRunning}
           isCurrentYear={isCurrentYear}
-          compareName={compareName}
         />
       )
       break
@@ -833,53 +1201,3 @@ export const Infobox = ({
 
   return <InfoboxWrapper>{infobox}</InfoboxWrapper>
 }
-
-/*
-總統
-投票率 ${profRate}
-${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-
-縣市首長
-總投票率 ${profRate}
-${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-
-立法委員
-下面可能是array
-${選區名稱}
-投票率 ${profRate}
-${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-or
-點擊地圖看更多資訊
-
-縣市議員
-下面可能是array
-${選區名稱}
-投票率 ${profRate}
-${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-${candidate.name} ${candidate.party} ${candidate.tksRate} ${candidate.candVictor}
-or
-點擊地圖看更多資訊
-
-公投
-${公投案號} ${公投案簡稱}
-此案是否通過：${通過與否}
-投票率 ${profRate}
-同意 ${agreeRate}
-不同意 ${全國投票率得票率}
-
-
-*/
-
-/**
- * President level: 1. country, 2. county, 3. towns 4. village
- * Mayor level: 1. county, 2. towns 3. village
- * Councilmen level: 1. county, 2. constituency 3. village
- * Indigenous Councilmen level: 1. county, 2. constituency 3. village
- * Legislators level: 1. county 2. constituency 3. village
- * Indigenous Legislators level: 1. country, 2. county, 3. towns 4. village
- * Legislators Party level: 1. country, 2. county, 3. towns 4. village
- * Referendum level: 1. country, 2. county, 3. towns 4. village
- */
